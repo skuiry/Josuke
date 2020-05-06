@@ -6,7 +6,10 @@ import sys, os, psutil
 from gtts import gTTS
 from discord import FFmpegPCMAudio
 from discord.utils import get
-
+import threading
+import requests
+import string
+    
 CLIENT = discord.Client()
 client = commands.Bot(command_prefix='+')
 blackList = []
@@ -236,22 +239,23 @@ async def die(ctx):
 
 @client.command(pass_context=True)
 async def speak(ctx):
-    unrefined = ctx.message.content
-    startIndex = 10
-    language = ctx.message.content[7:9]
-    if ctx.message.content[9] == "-":
-        startIndex = 13
-        language = ctx.message.content[7:12]
-    print("Language: " + language)
-    refined = unrefined[startIndex:]
-    print("Message: " + refined)
+    if ctx.message.author.voice == None:
+            await ctx.send("You are not connected to a voice channel!")
+            return
+    else:
+        unrefined = ctx.message.content
+        startIndex = 10
+        language = ctx.message.content[7:9]
+        if ctx.message.content[9] == "-":
+            startIndex = 13
+            language = ctx.message.content[7:12]
+        print("Language: " + language)
+        refined = unrefined[startIndex:]
+        print("Message: " + refined)
     try:
         rec = gTTS(text= refined, lang=language, slow=False)
         rec.save("discord.mp3")
         await ctx.send("Successfully converted!")
-        if ctx.message.author.voice is None:
-            await ctx.send("You are not connected to a voice channel!")
-            return
         voice = get(client.voice_clients, guild=ctx.guild)
         channel = ctx.message.author.voice.channel
         if voice and voice.is_connected():
@@ -274,7 +278,7 @@ async def leave(ctx):
 
 @client.command(pass_context=True)
 async def kick(ctx, userName: discord.User):
-    if ctx.message.author.top_role.name is "admin":
+    if ctx.message.author.top_role.name == "admin":
         try:
             await ctx.kick(userName)
             await ctx.send("DORADORADORADORADORA:fist:")
@@ -284,41 +288,28 @@ async def kick(ctx, userName: discord.User):
 #UNDER CONSTRUCTION#
 @client.command(pass_context=True)
 async def lyrics(ctx):
-    id = ctx.message.id
-    try:
-        url = 'https://www.google.com/search?ei=fvXlXOC8LM_UsAXtvJK4BQ&q=' + songs[id][0] + ' lyrics'
-        r = requests.get(url)
-        text = r.text
-        start = '>Lyrics</span></span></div><div class="NJM3tb"></div><div><div><div><div class="xpc"><div class="jfp3ef"><div><div><span class="hwx"><div class="BNeawe tAd8D AP7Wnd">'
-        end = '</div></span></div><div><span class="hwx"></span><span class="hwc">'
-        lyric = text[text.find(start)+len(start):text.find(end)]
-        
-        if ("meta" in lyric):
-            
-            url = 'https://www.google.com/search?ei=fvXlXOC8LM_UsAXtvJK4BQ&q=' + songs[id][0]
-            r = requests.get(url)
-            text = r.text
-            start = '>Lyrics</span></span></div><div class="NJM3tb"></div><div><div><div><div class="xpc"><div class="jfp3ef"><div><div><span class="hwx"><div class="BNeawe tAd8D AP7Wnd">'
-            end = '</div></span></div><div><span class="hwx"></span><span class="hwc">'
-            lyric = text[text.find(start)+len(start):text.find(end)]
+    songName = ctx.message.content[8:]
+    formatted = string.capwords(songName)
+    print(formatted)
+    url = 'https://www.google.com/search?ei=fvXlXOC8LM_UsAXtvJK4BQ&q=' + songName + ' lyrics'
+    r = requests.get(url)
+    r.encoding = requests.utils.get_encodings_from_content(r.text)
+    text = r.text
+    start = '<div class="BNeawe tAd8D AP7Wnd">'
+    end = '</div></div></div></div></div><div><span class="hwc"><div class="BNeawe uEec3 AP7Wnd">'
+    lyric = text[text.find(start)+71:text.find(end)]
+    formattedLyric = lyric.replace('</div>','<div>')
+    doubleFormattedLyric = formattedLyric.replace('<div class="hwc">','<div>')
+    tripleFormattedLyric = doubleFormattedLyric.replace('<div class="BNeawe tAd8D AP7Wnd">','')
+    quadFormattedLyric = doubleFormattedLyric.replace('<div class="BNeawe tAd8D AP7Wnd">','\n')
+    final = tripleFormattedLyric.replace('<div>','')
+    print(final)
+    await ctx.send("Lyrics for " + formatted + ":")
+    while (len(final) > 2000):
+        await ctx.send(final[0:1999])
+        final = final[1999:]
+    await ctx.send(final)
 
-            if ("meta" in lyric):
-                x = 5/0
-        
-        await client.say("__***Lyrics for " + songs[id][0] + ":***__")
-        while (len(lyric) > 2000):
-            await client.say(lyric[0:1999])
-            lyric = lyric[1999:]
-        await client.say(lyric)
-    except:
-        
-        try:
-            if (songs[id][0] == ""):
-                await client.say("Nothing is playing in the server")
-            else:
-                await client.say("Unable to find lyrics for " + songs[id][0] + "")
-            
-        except:
-            await client.say("Nothing is playing in the server")
-            
+    
 client.run('NjQ1MTUzNDI2MTkxMjg2MzE3.Xc-dnw.8GR5rdMOGisP5_Ufe9_uh4QMiQo')
+
