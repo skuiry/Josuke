@@ -170,6 +170,8 @@ langCodes = """ af
       vi
       zh-cn
       zh-tw"""
+caps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+lower = "abcdefghijklmnopqrstuvwxyz"
 
 @client.event
 async def on_ready():
@@ -177,6 +179,8 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Great Days"))
+    #await client.change_presence(activity=discord.CustomActivity(name="Great Days"))
     
 @client.command(pass_context=True)
 async def languageDict(ctx):
@@ -252,21 +256,21 @@ async def speak(ctx):
         print("Language: " + language)
         refined = unrefined[startIndex:]
         print("Message: " + refined)
-    try:
-        rec = gTTS(text= refined, lang=language, slow=False)
-        rec.save("discord.mp3")
-        await ctx.send("Successfully converted!")
-        voice = get(client.voice_clients, guild=ctx.guild)
-        channel = ctx.message.author.voice.channel
-        if voice and voice.is_connected():
-            await voice.move_to(channel)
-        else:
-            voice = await channel.connect()
-        source = FFmpegPCMAudio('discord.mp3')
-        player = voice.play(source)
-    except:
-        await ctx.send("Oops! The language you have chosen doesn't exist or was spelled incorrectly. Use +languageDict to view the list of languages supported by this bot. :)")
-        return
+        try:
+            rec = gTTS(text= refined, lang=language, slow=False)
+            rec.save("discord.mp3")
+            await ctx.send("Successfully converted!")
+            voice = get(client.voice_clients, guild=ctx.guild)
+            channel = ctx.message.author.voice.channel
+            if voice and voice.is_connected():
+                await voice.move_to(channel)
+            else:
+                voice = await channel.connect()
+            source = FFmpegPCMAudio('discord.mp3')
+            player = voice.play(source)
+        except:
+            await ctx.send("Oops! The language you have chosen doesn't exist or was spelled incorrectly. Use +languageDict to view the list of languages supported by this bot. :)")
+            return
 
 @client.command(pass_context=True)
 async def leave(ctx):
@@ -285,10 +289,42 @@ async def kick(ctx, userName: discord.User):
         except:
             await ctx.send("Your stand lacks the required power:laughing::laughing::laughing:")
         
-#UNDER CONSTRUCTION#
 @client.command(pass_context=True)
 async def lyrics(ctx):
     songName = ctx.message.content[8:]
+    formatted = string.capwords(songName)
+    print(formatted)
+    url = 'https://www.google.com/search?ei=fvXlXOC8LM_UsAXtvJK4BQ&q=' + songName + ' lyrics'
+    r = requests.get(url)
+    r.encoding = requests.utils.get_encodings_from_content(r.text)
+    text = r.text
+    start = '<div class="BNeawe tAd8D AP7Wnd">'
+    end = '</div></div></div></div></div><div><span class="hwc"><div class="BNeawe uEec3 AP7Wnd">'
+    lyric = text[text.find(start)+71:text.find(end)]
+    formattedLyric = lyric.replace('</div>','<div>')
+    doubleFormattedLyric = formattedLyric.replace('<div class="hwc">','<div>')
+    tripleFormattedLyric = doubleFormattedLyric.replace('<div class="BNeawe tAd8D AP7Wnd">','\n')
+    quadFormattedLyric = doubleFormattedLyric.replace('<div class="BNeawe tAd8D AP7Wnd">','\n')
+    final = quadFormattedLyric.replace('<div>','')
+    print(final)
+    await ctx.send("Lyrics for " + formatted + ":")
+    while (len(final) > 2000):
+        if (final[1999] != " "):
+            i = 1999
+            while (final[i] != " "):
+                i-=1
+        await ctx.send(final[0:i])
+        final = final[i:]
+    await ctx.send(final)
+    
+@client.command(pass_context=True)
+async def karao(ctx):
+    startIndex = 10
+    language = ctx.message.content[7:9]
+    if ctx.message.content[9] == "-":
+        startIndex = 13
+        language = ctx.message.content[7:12]
+    songName = ctx.message.content[startIndex:]
     formatted = string.capwords(songName)
     print(formatted)
     url = 'https://www.google.com/search?ei=fvXlXOC8LM_UsAXtvJK4BQ&q=' + songName + ' lyrics'
@@ -305,11 +341,31 @@ async def lyrics(ctx):
     final = tripleFormattedLyric.replace('<div>','')
     print(final)
     await ctx.send("Lyrics for " + formatted + ":")
-    while (len(final) > 2000):
-        await ctx.send(final[0:1999])
-        final = final[1999:]
-    await ctx.send(final)
-
+    
+    if ctx.message.author.voice == None:
+            await ctx.send("You are not connected to a voice channel!")
+            return
+    else:
+        print("Language: " + language)
+        try:
+            rec = gTTS(text= final, lang=language, slow=False)
+            rec.save("karaoke.mp3")
+            await ctx.send("Successfully converted!")
+            voice = get(client.voice_clients, guild=ctx.guild)
+            channel = ctx.message.author.voice.channel
+            if voice and voice.is_connected():
+                await voice.move_to(channel)
+            else:
+                voice = await channel.connect()
+            while (len(final) > 2000):
+                await ctx.send(final[0:1999])
+                final = final[1999:]
+            await ctx.send(final)
+            source = FFmpegPCMAudio('karaoke.mp3')
+            player = voice.play(source)
+        except:
+            await ctx.send("Oops! The language you have chosen doesn't exist or was spelled incorrectly. Use +languageDict to view the list of languages supported by this bot. :)")
+            return
+    
     
 client.run('NjQ1MTUzNDI2MTkxMjg2MzE3.Xc-dnw.8GR5rdMOGisP5_Ufe9_uh4QMiQo')
-
