@@ -368,4 +368,4 @@ async def karao(ctx):
             return
     
     
-client.run('NjQ1MTUzNDI2MTkxMjg2MzE3.Xc-dnw.8GR5rdMOGisP5_Ufe9_uh4QMiQo')
+
